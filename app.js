@@ -1,6 +1,6 @@
 /**
  * FUAD BOOKMARK MANAGER
- * Core Application Logic (Refactored for Clean Code Standards)
+ * Core Application Logic
  */
 
 const initialBookmarks = [];
@@ -163,7 +163,6 @@ function renderGrid() {
             <div class="card-url">${domain}</div>
         `;
 
-        // Modern Event Listeners (Fixes WebStorm Warnings)
         const actionsDiv = card.querySelector('.card-actions');
         actionsDiv.addEventListener('click', (e) => e.preventDefault());
 
@@ -207,8 +206,13 @@ function updateDatalist() {
 els.addForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const title = document.getElementById('bm-title').value.trim();
-    const url = document.getElementById('bm-url').value.trim();
+    let url = document.getElementById('bm-url').value.trim();
     const cat = document.getElementById('bm-cat').value.trim();
+
+    // Auto-append https:// if no protocol is provided
+    if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+    }
 
     if (bookmarks.some(b => b.url === url)) {
         alert("This URL is already in your library.");
