@@ -540,6 +540,17 @@ els.search.addEventListener('input', (e) => {
 document.getElementById('open-add-modal-btn').addEventListener('click', () => els.addModal.classList.add('active'));
 document.getElementById('open-add-cat-btn').addEventListener('click', () => els.addCatModal.classList.add('active'));
 
+// Close sidebar when clicking outside on mobile
+document.addEventListener('click', (e) => {
+    const toggleBtn = document.getElementById('toggle-sidebar');
+    if (window.innerWidth <= 768 && els.sidebar.classList.contains('open')) {
+        // If the click is NOT inside the sidebar AND NOT on the toggle button
+        if (!els.sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+            els.sidebar.classList.remove('open');
+        }
+    }
+});
+
 els.editCatBtn.addEventListener('click', () => {
     document.getElementById('new-cat-name').value = currentCategory;
     els.editModal.classList.add('active');
