@@ -1,6 +1,6 @@
 /**
  * FUAD BOOKMARK MANAGER
- * Core Application Logic
+ * Core Application Logic (Refactored for Clean Code Standards)
  */
 
 const initialBookmarks = [];
@@ -13,6 +13,9 @@ let currentCategory = 'All';
 let searchQuery = '';
 let isGridView = true;
 
+// Variable to track the specific bookmark being edited
+let editingBookmarkUrl = null;
+
 // DOM Elements
 const els = {
     catList: document.getElementById('category-list'),
@@ -20,15 +23,23 @@ const els = {
     search: document.getElementById('search'),
     catTitle: document.getElementById('current-category-title'),
     datalist: document.getElementById('cat-datalist'),
+    editBmDatalist: document.getElementById('edit-bm-datalist'),
     statTotal: document.getElementById('stat-total'),
     statFavs: document.getElementById('stat-favs'),
     statCats: document.getElementById('stat-cats'),
+
     addModal: document.getElementById('add-modal'),
     addForm: document.getElementById('add-form'),
+
+    editBmModal: document.getElementById('edit-bm-modal'),
+    editBmForm: document.getElementById('edit-bm-form'),
+
     editModal: document.getElementById('edit-cat-modal'),
     editForm: document.getElementById('edit-cat-form'),
+
     addCatModal: document.getElementById('add-cat-modal'),
     addCatForm: document.getElementById('add-cat-form'),
+
     editCatBtn: document.getElementById('edit-cat-btn'),
     deleteCatBtn: document.getElementById('delete-cat-btn'),
     sidebar: document.getElementById('sidebar')
@@ -68,6 +79,14 @@ function toggleFavorite(url) {
         favorites.push(url);
     }
     saveState();
+}
+
+function openEditBookmarkModal(b) {
+    editingBookmarkUrl = b.url;
+    document.getElementById('edit-bm-title').value = b.title;
+    document.getElementById('edit-bm-url').value = b.url;
+    document.getElementById('edit-bm-cat').value = b.cat;
+    els.editBmModal.classList.add('active');
 }
 
 // --- RENDER FUNCTIONS ---
@@ -148,6 +167,9 @@ function renderGrid() {
         card.className = 'card glass';
         card.innerHTML = `
             <div class="card-actions">
+                <button class="action-btn edit-bm-btn" title="Edit">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </button>
                 <button class="action-btn fav ${isFav ? 'active' : ''}" title="Favorite">
                     <svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
                 </button>
@@ -165,6 +187,11 @@ function renderGrid() {
 
         const actionsDiv = card.querySelector('.card-actions');
         actionsDiv.addEventListener('click', (e) => e.preventDefault());
+
+        card.querySelector('.edit-bm-btn').addEventListener('click', (e) => {
+            e.preventDefault();
+            openEditBookmarkModal(b);
+        });
 
         card.querySelector('.fav').addEventListener('click', (e) => {
             e.preventDefault();
@@ -195,24 +222,29 @@ function updateStats() {
 
 function updateDatalist() {
     els.datalist.innerHTML = '';
+    els.editBmDatalist.innerHTML = '';
+
     getCategories().filter(c => c !== 'All' && c !== '📌 Favorites').forEach(c => {
-        const option = document.createElement('option');
-        option.value = c;
-        els.datalist.appendChild(option);
+        const option1 = document.createElement('option');
+        option1.value = c;
+        els.datalist.appendChild(option1);
+
+        const option2 = document.createElement('option');
+        option2.value = c;
+        els.editBmDatalist.appendChild(option2);
     });
 }
 
 // --- FORM EVENT LISTENERS ---
+
+// Add Bookmark
 els.addForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const title = document.getElementById('bm-title').value.trim();
     let url = document.getElementById('bm-url').value.trim();
     const cat = document.getElementById('bm-cat').value.trim();
 
-    // Auto-append https:// if no protocol is provided
-    if (!/^https?:\/\//i.test(url)) {
-        url = 'https://' + url;
-    }
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
     if (bookmarks.some(b => b.url === url)) {
         alert("This URL is already in your library.");
@@ -227,6 +259,43 @@ els.addForm.addEventListener('submit', (e) => {
     els.addForm.reset();
 });
 
+// Edit Bookmark
+els.editBmForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const newTitle = document.getElementById('edit-bm-title').value.trim();
+    let newUrl = document.getElementById('edit-bm-url').value.trim();
+    const newCat = document.getElementById('edit-bm-cat').value.trim();
+
+    if (!/^https?:\/\//i.test(newUrl)) newUrl = 'https://' + newUrl;
+
+    if (newUrl !== editingBookmarkUrl && bookmarks.some(b => b.url === newUrl)) {
+        alert("This URL is already in your library.");
+        return;
+    }
+
+    if (!customCategories.includes(newCat)) customCategories.push(newCat);
+
+    // Update in bookmarks array
+    const index = bookmarks.findIndex(b => b.url === editingBookmarkUrl);
+    if (index !== -1) {
+        bookmarks[index].title = newTitle;
+        bookmarks[index].url = newUrl;
+        bookmarks[index].cat = newCat;
+    }
+
+    // Update in favorites array if URL changed
+    if (newUrl !== editingBookmarkUrl) {
+        const favIndex = favorites.indexOf(editingBookmarkUrl);
+        if (favIndex !== -1) {
+            favorites[favIndex] = newUrl;
+        }
+    }
+
+    saveState();
+    els.editBmModal.classList.remove('active');
+});
+
+// Edit Category Name
 els.editForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newName = document.getElementById('new-cat-name').value.trim();
@@ -246,6 +315,7 @@ els.editForm.addEventListener('submit', (e) => {
     els.editModal.classList.remove('active');
 });
 
+// Create Folder
 els.addCatForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newFolderName = document.getElementById('new-folder-name').value.trim();
@@ -257,6 +327,7 @@ els.addCatForm.addEventListener('submit', (e) => {
     els.addCatForm.reset();
 });
 
+// Delete Category
 els.deleteCatBtn.addEventListener('click', () => {
     const confirmDelete = confirm(`Are you sure you want to delete the folder "${currentCategory}"?\n\nWARNING: This will also delete ALL bookmarks inside it!`);
     if (confirmDelete) {

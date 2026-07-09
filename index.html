@@ -96,7 +96,6 @@
             </div>
             <div class="form-group">
                 <label for="bm-url">URL</label>
-                <!-- Type changed to text to allow custom formatting -->
                 <input type="text" id="bm-url" placeholder="example.com" required>
             </div>
             <div class="form-group">
@@ -107,6 +106,32 @@
             <div class="modal-footer">
                 <button type="button" class="btn-secondary close-modal-btn">Cancel</button>
                 <button type="submit" class="btn-primary">Save Bookmark</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Bookmark -->
+<div id="edit-bm-modal" class="modal-overlay">
+    <div class="modal-content">
+        <h3 class="modal-header">Edit Bookmark</h3>
+        <form id="edit-bm-form">
+            <div class="form-group">
+                <label for="edit-bm-title">Title</label>
+                <input type="text" id="edit-bm-title" required>
+            </div>
+            <div class="form-group">
+                <label for="edit-bm-url">URL</label>
+                <input type="text" id="edit-bm-url" required>
+            </div>
+            <div class="form-group">
+                <label for="edit-bm-cat">Category / Folder</label>
+                <input type="text" id="edit-bm-cat" list="edit-bm-datalist" required>
+                <datalist id="edit-bm-datalist"></datalist>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary close-modal-btn">Cancel</button>
+                <button type="submit" class="btn-primary">Save Changes</button>
             </div>
         </form>
     </div>
