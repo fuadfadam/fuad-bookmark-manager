@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuad's Bookmarks</title>
+    <link rel="icon" type="image/jpeg" href="Fuad.jpg">
+    <style>
+        :root {
+            --bg-base: #09090b;
+            --bg-panel: rgba(24, 24, 27, 0.75);
+            --bg-card: rgba(39, 39, 42, 0.6);
+            --bg-card-hover: rgba(63, 63, 70, 0.8);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.4);
+            --border: rgba(255, 255, 255, 0.08);
+            --danger: #ef4444;
+            --success: #10b981;
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        .light-mode {
+            --bg-base: #f1f5f9;
+            --bg-panel: rgba(255, 255, 255, 0.85);
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --bg-card-hover: rgba(241, 245, 249, 1);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --accent: #2563eb;
+            --border: rgba(0, 0, 0, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-stack); }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .emoji-icon { width: 1.2em; height: 1.2em; vertical-align: -0.2em; display: inline-block; margin-right: 4px; }
+
+        .glass {
+            background: var(--bg-panel);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-right: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+
+        #sidebar {
+            width: 280px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+            z-index: 10;
+        }
+
+        .brand {
+            padding: 24px; font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border);
+        }
+
+        .avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+
+        .nav-items { flex: 1; overflow-y: auto; padding: 16px 12px; }
+        .nav-items::-webkit-scrollbar { width: 4px; }
+        .nav-items::-webkit-scrollbar-thumb { background: var(--bg-card-hover); border-radius: 4px; }
+
+        .category-btn {
+            width: 100%; text-align: left; padding: 12px 14px; background: transparent; border: none; color: var(--text-muted);
+            font-size: 14px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px;
+        }
+        .category-btn:hover, .category-btn.active { background: var(--bg-card); color: var(--text-main); }
+        .category-count { background: var(--bg-base); padding: 2px 8px; border-radius: 12px; font-size: 11px; border: 1px solid var(--border); }
+
+        #main { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+
+        #header { padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); z-index: 5; gap: 15px; }
+
+        .search-container { position: relative; flex: 1; max-width: 480px; }
+        .search-container input { width: 100%; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); padding: 12px 16px 12px 40px; border-radius: 12px; font-size: 14px; outline: none; transition: all 0.3s ease; }
+        .search-container input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+        .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); fill: var(--text-muted); width: 16px; height: 16px; }
+
+        .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+        .icon-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-main); width: 40px; height: 40px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .icon-btn:hover { background: var(--bg-card-hover); }
+        .icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+
+        .btn-primary { background: var(--accent); color: #fff; border: none; padding: 10px 16px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.2s; }
+        .btn-primary:hover { background: #2563eb; }
+
+        .stats-bar { padding: 12px 32px; font-size: 12px; color: var(--text-muted); display: flex; gap: 20px; border-bottom: 1px solid var(--border); overflow-x: auto; white-space: nowrap; }
+
+        #content-area { flex: 1; padding: 32px; overflow-y: auto; }
+        .section-title { font-size: 24px; font-weight: 600; margin-bottom: 24px; display: flex; align-items: center; }
+
+        .bookmark-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+        .bookmark-container.list-view { display: flex; flex-direction: column; gap: 12px; }
+
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 12px; transition: all 0.2s ease; position: relative; }
+        .card:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3); }
+        .list-view .card { flex-direction: row; align-items: center; padding: 12px 20px; transform: none !important; }
+
+        .card-header { display: flex; align-items: center; gap: 16px; flex: 1; overflow: hidden; }
+        .favicon { min-width: 32px; height: 32px; border-radius: 8px; background: var(--bg-base); object-fit: cover; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: var(--text-muted); border: 1px solid var(--border); }
+        .list-view .favicon { min-width: 24px; height: 24px; font-size: 12px; }
+
+        .card-title { font-size: 15px; font-weight: 500; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .list-view .card-title { -webkit-line-clamp: 1; }
+
+        .card-url { font-size: 12px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 40px; }
+        .list-view .card-url { text-align: right; margin-right: 70px; }
+
+        .card-actions { position: absolute; top: 20px; right: 15px; display: flex; gap: 8px; opacity: 0; transition: opacity 0.2s; }
+        .card:hover .card-actions { opacity: 1; }
+        .list-view .card-actions { top: 50%; transform: translateY(-50%); opacity: 1; right: 20px;}
+
+        .action-btn { background: var(--bg-base); border: 1px solid var(--border); border-radius: 6px; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-muted); transition: all 0.2s; }
+        .action-btn:hover { color: var(--text-main); border-color: var(--text-muted); }
+        .action-btn.delete:hover { color: var(--danger); border-color: var(--danger); background: rgba(239, 68, 68, 0.1); }
+        .action-btn.fav.active { color: #f59e0b; border-color: #f59e0b; }
+        .action-btn svg { width: 14px; height: 14px; fill: currentColor; }
+
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal-content { width: 100%; max-width: 420px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 32px; transform: translateY(20px); transition: transform 0.3s ease; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); margin: 20px; }
+        .modal-overlay.active .modal-content { transform: translateY(0); }
+
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 13px; color: var(--text-muted); margin-bottom: 6px; }
+        .form-group input { width: 100%; background: var(--bg-base); border: 1px solid var(--border); color: var(--text-main); padding: 12px; border-radius: 10px; font-size: 14px; outline: none; transition: border 0.2s; }
+        .form-group input:focus { border-color: var(--accent); }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px; }
+        .btn-secondary { background: transparent; color: var(--text-main); border: 1px solid var(--border); padding: 10px 18px; border-radius: 10px; font-size: 14px; cursor: pointer; transition: background 0.2s; }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            #sidebar { position: absolute; left: -100%; transition: left 0.3s ease; }
+            #sidebar.open { left: 0; width: 80%; background: var(--bg-panel); z-index: 50; }
+            #header { padding: 15px; flex-direction: column; align-items: stretch; gap: 10px; }
+            .controls { justify-content: space-between; }
+            .card-actions { opacity: 1; }
+            .list-view .card-url { display: none; }
+            .stats-bar { padding: 10px 15px; }
+            #content-area { padding: 15px; }
+        }
+        .mobile-menu-btn { display: none; }
+        @media (max-width: 768px) { .mobile-menu-btn { display: flex; } }
+    </style>
+</head>
+<body class="glass">
+
+<aside id="sidebar" class="glass">
+    <div class="brand">
+        <img src="Fuad.jpg" alt="Fuad" class="avatar" onerror="this.src='https://ui-avatars.com/api/?name=Fuad&background=3b82f6&color=fff'">
+        Fuad's Bookmarks
+    </div>
+    <div class="nav-items" id="category-list"></div>
+</aside>
+
+<main id="main">
+    <header id="header" class="glass">
+        <div style="display: flex; gap: 10px; align-items: center; width: 100%;">
+            <button class="icon-btn mobile-menu-btn" id="toggle-sidebar">
+                <svg viewBox="0 0 24 24"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+            </button>
+            <div class="search-container">
+                <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+                <input type="text" id="search" placeholder="Search your bookmarks..." autocomplete="off">
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" id="open-modal-btn">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg> New
+            </button>
+            <button class="icon-btn" id="export-db-btn" title="Export Database (Save to file)">
+                <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+            </button>
+            <button class="icon-btn" id="import-db-btn" title="Import Database (Load from file)">
+                <svg viewBox="0 0 24 24"><path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/></svg>
+            </button>
+            <input type="file" id="import-file" accept=".json" style="display: none;">
+            <button class="icon-btn" id="toggle-view" title="Toggle View">
+                <svg viewBox="0 0 24 24"><path d="M4 4h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 10h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 16h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z"/></svg>
+            </button>
+            <button class="icon-btn" id="toggle-theme" title="Toggle Theme">
+                <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4C12.92 3.04 12.46 3 12 3z"/></svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="stats-bar glass">
+        <span>📚 <span id="stat-total">0</span> Total</span>
+        <span>⭐ <span id="stat-favs">0</span> Favorites</span>
+        <span>🌐 <span id="stat-cats">0</span> Categories</span>
+    </div>
+
+    <div id="content-area" onclick="closeSidebarOnMobile()">
+        <h2 class="section-title" id="current-category-title">All Bookmarks</h2>
+        <div id="bookmarks-grid" class="bookmark-container"></div>
+    </div>
+</main>
+
+<!-- Modal for Adding Bookmark -->
+<div id="add-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div style="font-size: 20px; font-weight: 600; margin-bottom: 24px;">Add New Bookmark</div>
+        <form id="add-form">
+            <div class="form-group"><label>Title</label><input type="text" id="bm-title" required></div>
+            <div class="form-group"><label>URL</label><input type="url" id="bm-url" required></div>
+            <div class="form-group"><label>Category</label><input type="text" id="bm-cat" list="cat-datalist" required><datalist id="cat-datalist"></datalist></div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" id="close-modal-btn">Cancel</button>
+                <button type="submit" class="btn-primary">Save Bookmark</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    const fullBookmarks = [
+        { title: "Kling AI: Next-Generation AI Creative Studio", url: "https://klingai.com/global/", cat: "🤖 AI & Machine Learning" },
+        { title: "Luma AI | AI Video Generation", url: "https://lumalabs.ai/", cat: "🤖 AI & Machine Learning" },
+        { title: "Udio | AI Music Generator", url: "https://www.udio.com/", cat: "🤖 AI & Machine Learning" },
+        { title: "Suno | AI Music", url: "https://suno.com/home", cat: "🤖 AI & Machine Learning" },
+        { title: "Civitai: The Home of Open-Source Generative AI", url: "https://civitai.com/", cat: "🤖 AI & Machine Learning" },
+        { title: "DeepAI", url: "https://deepai.org/", cat: "🤖 AI & Machine Learning" },
+        { title: "OpenRead - AI Research Platform", url: "https://www.openread.academy/", cat: "🤖 AI & Machine Learning" },
+        { title: "Devin | The AI Software Engineer", url: "https://devin.ai/", cat: "🤖 AI & Machine Learning" },
+        { title: "Langflow", url: "https://www.langflow.org/", cat: "🤖 AI & Machine Learning" },
+        { title: "Open WebUI", url: "https://openwebui.com/", cat: "🤖 AI & Machine Learning" },
+        { title: "LocalAI", url: "https://localai.io/", cat: "🤖 AI & Machine Learning" },
+        { title: "Hugging Face", url: "https://huggingface.co/", cat: "🤖 AI & Machine Learning" },
+        { title: "Pi", url: "https://pi.ai/", cat: "🤖 AI & Machine Learning" },
+        { title: "ColorMagic", url: "https://colormagic.app/", cat: "🤖 AI & Machine Learning" },
+        { title: "ChatGPT", url: "https://chatgpt.com/", cat: "🤖 AI & Machine Learning" },
+        { title: "پرامپت آماده هوش مصنوعی - PromptAll", url: "https://promptall.ir/", cat: "🤖 AI & Machine Learning" },
+        { title: "W3Schools", url: "https://www.w3schools.com/", cat: "💻 Programming & Dev" },
+        { title: "PythonAnywhere", url: "https://www.pythonanywhere.com/", cat: "💻 Programming & Dev" },
+        { title: "GitHub", url: "https://github.com/", cat: "💻 Programming & Dev" },
+        { title: "GitKraken", url: "https://www.gitkraken.com/", cat: "💻 Programming & Dev" },
+        { title: "LazyVim", url: "https://www.lazyvim.org/", cat: "💻 Programming & Dev" },
+        { title: "Nim Programming Language", url: "https://nim-lang.org/", cat: "💻 Programming & Dev" },
+        { title: "The Go Programming Language", url: "https://go.dev/", cat: "💻 Programming & Dev" },
+        { title: "Python.org", url: "https://www.python.org/", cat: "💻 Programming & Dev" },
+        { title: "Rust Programming Language", url: "https://rust-lang.org/", cat: "💻 Programming & Dev" },
+        { title: "Zig Programming Language", url: "https://ziglang.org/", cat: "💻 Programming & Dev" },
+        { title: "Less.js", url: "https://lesscss.org/", cat: "💻 Programming & Dev" },
+        { title: "Sass", url: "https://sass-lang.com/", cat: "💻 Programming & Dev" },
+        { title: "PostCSS", url: "https://postcss.org/", cat: "💻 Programming & Dev" },
+        { title: "W3C", url: "https://www.w3.org/", cat: "💻 Programming & Dev" },
+        { title: "Git", url: "https://git-scm.com/", cat: "💻 Programming & Dev" },
+        { title: "SaveWeb2ZIP", url: "https://saveweb2zip.com/en", cat: "🛠️ Tools & Utilities" },
+        { title: "Site-Shot", url: "https://www.site-shot.com/", cat: "🛠️ Tools & Utilities" },
+        { title: "LibreTranslate", url: "https://libretranslate.com/", cat: "🛠️ Tools & Utilities" },
+        { title: "Text to Speech", url: "https://www.text-to-speech.online/", cat: "🛠️ Tools & Utilities" },
+        { title: "dewatermark", url: "https://dewatermark.ai/", cat: "🛠️ Tools & Utilities" },
+        { title: "LocalSend", url: "https://localsend.org/", cat: "🛠️ Tools & Utilities" },
+        { title: "Activepieces", url: "https://www.activepieces.com/", cat: "🛠️ Tools & Utilities" },
+        { title: "Node-RED", url: "https://nodered.org/", cat: "🛠️ Tools & Utilities" },
+        { title: "n8n", url: "https://n8n.io/", cat: "🛠️ Tools & Utilities" },
+        { title: "Syncthing", url: "https://syncthing.net/", cat: "🛠️ Tools & Utilities" },
+        { title: "Ventoy", url: "https://ventoy.net/", cat: "🛠️ Tools & Utilities" },
+        { title: "Termux", url: "https://termux.dev/", cat: "🛠️ Tools & Utilities" },
+        { title: "NekoRay", url: "https://nekoray.org/", cat: "🛠️ Tools & Utilities" },
+        { title: "WeCompress", url: "https://www.wecompress.com/en/", cat: "🛠️ Tools & Utilities" },
+        { title: "Advanced Download Manager", url: "https://advancedapp.kz/", cat: "🛠️ Tools & Utilities" },
+        { title: "Bulk Crap Uninstaller", url: "https://www.bcuninstaller.com/", cat: "🛠️ Tools & Utilities" },
+        { title: "WizTree", url: "https://diskanalyzer.com/", cat: "🛠️ Tools & Utilities" },
+        { title: "123apps", url: "https://123apps.com/", cat: "🛠️ Tools & Utilities" },
+        { title: "Hat.sh", url: "https://hat.sh/", cat: "🛠️ Tools & Utilities" },
+        { title: "IT Tools", url: "https://it-tools.tech/", cat: "🛠️ Tools & Utilities" },
+        { title: "iLoveIMG", url: "https://www.iloveimg.com/", cat: "🛠️ Tools & Utilities" },
+        { title: "KeePassXC", url: "https://keepassxc.org/", cat: "🛠️ Tools & Utilities" },
+        { title: "Floccus", url: "https://floccus.org/", cat: "🛠️ Tools & Utilities" },
+        { title: "qBittorrent", url: "https://www.qbittorrent.org/", cat: "🛠️ Tools & Utilities" },
+        { title: "Nextcloud", url: "https://nextcloud.com/", cat: "🌍 Networking & Hosting" },
+        { title: "mailcow", url: "https://mailcow.email/", cat: "🌍 Networking & Hosting" },
+        { title: "LinkAce", url: "https://www.linkace.org/", cat: "🌍 Networking & Hosting" },
+        { title: "wallabag", url: "https://wallabag.org/#", cat: "🌍 Networking & Hosting" },
+        { title: "OPNsense", url: "https://opnsense.org/", cat: "🌍 Networking & Hosting" },
+        { title: "BorgBackup", url: "https://www.borgbackup.org/", cat: "🌍 Networking & Hosting" },
+        { title: "Hestia Control Panel", url: "https://hestiacp.com/", cat: "🌍 Networking & Hosting" },
+        { title: "Nginx Proxy Manager", url: "https://nginxproxymanager.com/", cat: "🌍 Networking & Hosting" },
+        { title: "Pi-hole", url: "https://pi-hole.net/", cat: "🌍 Networking & Hosting" },
+        { title: "Uptime Kuma", url: "https://kuma.pet/", cat: "🌍 Networking & Hosting" },
+        { title: "Proxmox", url: "https://www.proxmox.com/en/", cat: "🌍 Networking & Hosting" },
+        { title: "Zabbix", url: "https://www.zabbix.com/", cat: "🌍 Networking & Hosting" },
+        { title: "Grafana", url: "https://grafana.com/", cat: "🌍 Networking & Hosting" },
+        { title: "File Browser", url: "https://filebrowser.org/", cat: "🌍 Networking & Hosting" },
+        { title: "PrivateBin", url: "https://privatebin.info/", cat: "🌍 Networking & Hosting" },
+        { title: "Paperless-ngx", url: "http://paperless-ngx.com/", cat: "🌍 Networking & Hosting" },
+        { title: "Samba", url: "https://www.samba.org/", cat: "🌍 Networking & Hosting" },
+        { title: "Docker", url: "https://www.docker.com/", cat: "🌍 Networking & Hosting" },
+        { title: "Podman", url: "https://podman.io/", cat: "🌍 Networking & Hosting" },
+        { title: "Kubernetes", url: "https://kubernetes.io/", cat: "🌍 Networking & Hosting" },
+        { title: "cPanel", url: "https://cpanel.net/", cat: "🌍 Networking & Hosting" },
+        { title: "DirectAdmin", url: "https://www.directadmin.com/", cat: "🌍 Networking & Hosting" },
+        { title: "ScamMinder", url: "https://scamminder.com/", cat: "🔐 Security & Privacy" },
+        { title: "bettercap", url: "https://www.bettercap.org/", cat: "🔐 Security & Privacy" },
+        { title: "mitmproxy", url: "https://www.mitmproxy.org/", cat: "🔐 Security & Privacy" },
+        { title: "urlscan.io", url: "https://urlscan.io/", cat: "🔐 Security & Privacy" },
+        { title: "Dr.Web", url: "https://www.drweb.com/", cat: "🔐 Security & Privacy" },
+        { title: "ANY.RUN", url: "https://any.run/", cat: "🔐 Security & Privacy" },
+        { title: "Malcat", url: "https://malcat.fr/", cat: "🔐 Security & Privacy" },
+        { title: "Hybrid Analysis", url: "https://hybrid-analysis.com/", cat: "🔐 Security & Privacy" },
+        { title: "VirusTotal", url: "https://www.virustotal.com/", cat: "🔐 Security & Privacy" },
+        { title: "ClamAVNet", url: "https://www.clamav.net/", cat: "🔐 Security & Privacy" },
+        { title: "Hardenize", url: "https://www.hardenize.com/", cat: "🔐 Security & Privacy" },
+        { title: "IsLegitSite", url: "https://www.islegitsite.com/", cat: "🔐 Security & Privacy" },
+        { title: "eCryptfs", url: "https://www.ecryptfs.org/", cat: "🔐 Security & Privacy" },
+        { title: "Duck.ai", url: "https://duck.ai/", cat: "🔐 Security & Privacy" },
+        { title: "Autodesk", url: "https://www.autodesk.com/", cat: "🎨 Design & Multimedia" },
+        { title: "IconKitchen", url: "https://icon.kitchen/", cat: "🎨 Design & Multimedia" },
+        { title: "COLOR anything", url: "https://color-anything.com/", cat: "🎨 Design & Multimedia" },
+        { title: "Photoroom", url: "https://www.photoroom.com/tools/background-remover", cat: "🎨 Design & Multimedia" },
+        { title: "TinyPNG", url: "https://tinypng.com/", cat: "🎨 Design & Multimedia" },
+        { title: "ImageColorizer", url: "https://imagecolorizer.com/", cat: "🎨 Design & Multimedia" },
+        { title: "Blender", url: "https://www.blender.org/", cat: "🎨 Design & Multimedia" },
+        { title: "GIMP", url: "https://www.gimp.org/", cat: "🎨 Design & Multimedia" },
+        { title: "DigiKam", url: "https://www.digikam.org/", cat: "🎨 Design & Multimedia" },
+        { title: "Pencil2D", url: "https://www.pencil2d.org/", cat: "🎨 Design & Multimedia" },
+        { title: "MyPaint", url: "https://mypaint.app/", cat: "🎨 Design & Multimedia" },
+        { title: "Inkscape", url: "https://inkscape.org/", cat: "🎨 Design & Multimedia" },
+        { title: "Shotcut", url: "https://shotcut.org/", cat: "🎨 Design & Multimedia" },
+        { title: "LMMS", url: "http://lmms.io/", cat: "🎨 Design & Multimedia" },
+        { title: "Mixxx", url: "https://mixxx.org/", cat: "🎨 Design & Multimedia" },
+        { title: "Ardour", url: "https://ardour.org/", cat: "🎨 Design & Multimedia" },
+        { title: "Audacity", url: "https://www.audacityteam.org/", cat: "🎨 Design & Multimedia" },
+        { title: "OBS", url: "https://obsproject.com/", cat: "🎨 Design & Multimedia" },
+        { title: "Scribus", url: "https://www.scribus.net/", cat: "🎨 Design & Multimedia" },
+        { title: "Olive Video Editor", url: "https://www.olivevideoeditor.org/", cat: "🎨 Design & Multimedia" },
+        { title: "RawTherapee", url: "https://www.rawtherapee.com/", cat: "🎨 Design & Multimedia" },
+        { title: "coreboot", url: "https://www.coreboot.org/", cat: "🚁 Hardware & Drones" },
+        { title: "PINE64", url: "https://pine64.org/", cat: "🚁 Hardware & Drones" },
+        { title: "Raspberry Pi", url: "https://www.raspberrypi.org/", cat: "🚁 Hardware & Drones" },
+        { title: "Pixhawk", url: "https://pixhawk.org/", cat: "🚁 Hardware & Drones" },
+        { title: "PX4 Autopilot", url: "https://px4.io/", cat: "🚁 Hardware & Drones" },
+        { title: "KiCad", url: "https://www.kicad.org/", cat: "🚁 Hardware & Drones" },
+        { title: "STMicroelectronics", url: "https://www.st.com/content/st_com/en.html", cat: "🚁 Hardware & Drones" },
+        { title: "Espressif Systems", url: "https://www.espressif.com/", cat: "🚁 Hardware & Drones" },
+        { title: "VORON Design", url: "https://vorondesign.com/", cat: "🚁 Hardware & Drones" },
+        { title: "Klipper", url: "https://www.klipper3d.org/", cat: "🚁 Hardware & Drones" },
+        { title: "OrcaSlicer", url: "https://www.orcaslicer.com/", cat: "🚁 Hardware & Drones" },
+        { title: "T-MOTOR", url: "https://tmotor.com/", cat: "🚁 Hardware & Drones" },
+        { title: "RadioMaster RC", url: "https://radiomasterrc.com/", cat: "🚁 Hardware & Drones" },
+        { title: "Holybro", url: "https://holybro.com/", cat: "🚁 Hardware & Drones" },
+        { title: "ROS", url: "https://www.ros.org/", cat: "🚁 Hardware & Drones" },
+        { title: "Leo Rover", url: "https://www.leorover.tech/", cat: "🚁 Hardware & Drones" },
+        { title: "Mobian", url: "https://www.mobian.org/", cat: "🐧 OS & Linux" },
+        { title: "postmarketOS", url: "https://postmarketos.org/", cat: "🐧 OS & Linux" },
+        { title: "Bliss OS", url: "https://blissos.org/", cat: "🐧 OS & Linux" },
+        { title: "LineageOS", url: "https://www.lineageos.org/", cat: "🐧 OS & Linux" },
+        { title: "Arch Linux", url: "https://archlinux.org/", cat: "🐧 OS & Linux" },
+        { title: "Debian", url: "https://www.debian.org/", cat: "🐧 OS & Linux" },
+        { title: "Keplr Wallet", url: "https://www.keplr.app/", cat: "🪙 Crypto & Web3" },
+        { title: "Cosmos", url: "https://cosmos.network/", cat: "🪙 Crypto & Web3" },
+        { title: "Secret Network", url: "https://scrt.network/", cat: "🪙 Crypto & Web3" },
+        { title: "CoinGecko", url: "https://www.coingecko.com/", cat: "🪙 Crypto & Web3" },
+        { title: "dYdX", url: "https://dydx.trade/", cat: "🪙 Crypto & Web3" },
+        { title: "Osmosis", url: "https://osmosis.zone/", cat: "🪙 Crypto & Web3" },
+        { title: "CoinMarketCap", url: "https://coinmarketcap.com/", cat: "🪙 Crypto & Web3" },
+        { title: "ChangeNOW", url: "https://changenow.io/en", cat: "🪙 Crypto & Web3" },
+        { title: "DeGate", url: "https://degate.com/?en-US", cat: "🪙 Crypto & Web3" },
+        { title: "Stack Wallet", url: "https://stackwallet.com/", cat: "🪙 Crypto & Web3" },
+        { title: "Iran Khodro", url: "https://www.ikco.ir/fa/", cat: "🇮🇷 Local & Regional" },
+        { title: "Iran.gov.ir", url: "https://iran.gov.ir/fa/", cat: "🇮🇷 Local & Regional" },
+        { title: "Divar", url: "https://divar.ir/", cat: "🇮🇷 Local & Regional" },
+        { title: "e-estekhdam", url: "https://www.e-estekhdam.com/", cat: "🇮🇷 Local & Regional" },
+        { title: "JobVision", url: "https://jobvision.ir/", cat: "🇮🇷 Local & Regional" },
+        { title: "Nobitex", url: "https://nobitex.ir/", cat: "🇮🇷 Local & Regional" },
+        { title: "IraniCard", url: "https://www.iranicard.ir/", cat: "🇮🇷 Local & Regional" },
+        { title: "Numberland", url: "https://numberland.ir/", cat: "🇮🇷 Local & Regional" },
+        { title: "Samanehha", url: "https://www.samanehha.com/", cat: "🇮🇷 Local & Regional" },
+        { title: "CafeBazaar", url: "https://cafebazaar.ir/", cat: "🇮🇷 Local & Regional" },
+        { title: "Mofid Securities", url: "https://www.emofid.com/", cat: "🇮🇷 Local & Regional" },
+        { title: "Snapp", url: "https://snapp.ir/", cat: "🇮🇷 Local & Regional" },
+        { title: "BPI", url: "https://www.bpi.ir/fa", cat: "🇮🇷 Local & Regional" },
+        { title: "Fanap", url: "https://fanap.ir/", cat: "🇮🇷 Local & Regional" },
+        { title: "Soft98", url: "https://soft98.ir/", cat: "🇮🇷 Local & Regional" },
+        { title: "Anker", url: "https://www.anker.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Honda", url: "https://global.honda/en/", cat: "🛒 Brands & Shopping" },
+        { title: "Target", url: "https://www.target.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Uber", url: "https://www.uber.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Namecheap", url: "https://www.namecheap.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Oracle", url: "https://www.oracle.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Dell", url: "https://www.dell.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Meta", url: "https://www.meta.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Levi's", url: "https://www.levi.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Patagonia", url: "https://www.patagonia.com/", cat: "🛒 Brands & Shopping" },
+        { title: "New Balance", url: "https://www.newbalance.com/", cat: "🛒 Brands & Shopping" },
+        { title: "IKEA", url: "https://www.ikea.com/nl/en/", cat: "🛒 Brands & Shopping" },
+        { title: "Subway", url: "https://www.subway.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Toyota", url: "https://www.toyota.com/", cat: "🛒 Brands & Shopping" },
+        { title: "Whirlpool", url: "https://www.whirlpool.com/", cat: "🛒 Brands & Shopping" },
+        { title: "MIT", url: "https://mit.edu/", cat: "🏛️ Knowledge & Institutions" },
+        { title: "CIA", url: "https://www.cia.gov/", cat: "🏛️ Knowledge & Institutions" },
+        { title: "NSA", url: "https://www.nsa.gov/", cat: "🏛️ Knowledge & Institutions" },
+        { title: "The White House", url: "https://www.whitehouse.gov/", cat: "🏛️ Knowledge & Institutions" },
+        { title: "National Archives", url: "https://www.archives.gov/", cat: "🏛️ Knowledge & Institutions" },
+        { title: "Library of Congress", url: "https://www.congress.gov/", cat: "🏛️ Knowledge & Institutions" },
+        { title: "U.S. Census Bureau", url: "https://www.census.gov/", cat: "🏛️ Knowledge & Institutions" },
+        { title: "Wikipedia", url: "https://www.wikipedia.org/", cat: "🏛️ Knowledge & Institutions" },
+        { title: "Khan Academy", url: "https://www.khanacademy.org/", cat: "🏛️ Knowledge & Institutions" }
+    ];
+
+    let bookmarks = JSON.parse(localStorage.getItem('fuad_db_final'));
+    if (!bookmarks || bookmarks.length === 0) {
+        bookmarks = fullBookmarks;
+        localStorage.setItem('fuad_db_final', JSON.stringify(bookmarks));
+    }
+
+    let favorites = JSON.parse(localStorage.getItem('fuad_favs_final')) || [];
+    let currentCategory = 'All';
+    let searchQuery = '';
+    let isGridView = true;
+
+    function renderEmoji(text) {
+        return text.replace(/🇮🇷/g, '<img src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f1ee-1f1f7.png" class="emoji-icon" alt="IR">');
+    }
+
+    function getDynamicCategories() {
+        const cats = new Set(bookmarks.map(b => b.cat));
+        return ['All', '📌 Favorites', ...Array.from(cats)].sort();
+    }
+
+    const catListEl = document.getElementById('category-list');
+    const bookmarksGridEl = document.getElementById('bookmarks-grid');
+    const searchEl = document.getElementById('search');
+    const catTitleEl = document.getElementById('current-category-title');
+    const catDatalistEl = document.getElementById('cat-datalist');
+
+    function saveToStorage() {
+        localStorage.setItem('fuad_db_final', JSON.stringify(bookmarks));
+        localStorage.setItem('fuad_favs_final', JSON.stringify(favorites));
+        updateUI();
+    }
+
+    window.deleteBookmark = function(e, url) {
+        e.preventDefault(); e.stopPropagation();
+        if (confirm("Are you sure you want to delete this bookmark?")) {
+            bookmarks = bookmarks.filter(b => b.url !== url);
+            favorites = favorites.filter(f => f !== url);
+            saveToStorage();
+        }
+    }
+
+    window.toggleFav = function(e, url) {
+        e.preventDefault(); e.stopPropagation();
+        if (favorites.includes(url)) { favorites = favorites.filter(f => f !== url); }
+        else { favorites.push(url); }
+        saveToStorage();
+    }
+
+    document.getElementById('add-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const title = document.getElementById('bm-title').value.trim();
+        const url = document.getElementById('bm-url').value.trim();
+        const cat = document.getElementById('bm-cat').value.trim();
+
+        if (bookmarks.some(b => b.url === url)) { alert("This URL already exists in your bookmarks!"); return; }
+        bookmarks.push({ title, url, cat });
+        saveToStorage();
+        document.getElementById('add-modal').classList.remove('active');
+        document.getElementById('add-form').reset();
+    });
+
+    // ----- IMPORT / EXPORT LOGIC -----
+    document.getElementById('export-db-btn').addEventListener('click', () => {
+        const data = { bookmarks, favorites };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'fuad_db.json';
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('import-db-btn').addEventListener('click', () => {
+        document.getElementById('import-file').click();
+    });
+
+    document.getElementById('import-file').addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (importedData.bookmarks) bookmarks = importedData.bookmarks;
+                if (importedData.favorites) favorites = importedData.favorites;
+                saveToStorage();
+                alert("Database loaded successfully!");
+            } catch (err) {
+                alert("Error: Invalid JSON file.");
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = ''; // Reset input
+    });
+    // ---------------------------------
+
+    function updateUI() { renderSidebar(); renderBookmarks(); updateStats(); updateDatalist(); }
+
+    function renderSidebar() {
+        const categories = getDynamicCategories();
+        catListEl.innerHTML = '';
+        if (!categories.includes(currentCategory) && currentCategory !== 'All' && currentCategory !== '📌 Favorites') currentCategory = 'All';
+
+        categories.forEach(cat => {
+            const count = cat === 'All' ? bookmarks.length : cat === '📌 Favorites' ? favorites.length : bookmarks.filter(b => b.cat === cat).length;
+            const btn = document.createElement('button');
+            btn.className = `category-btn ${cat === currentCategory ? 'active' : ''}`;
+            btn.innerHTML = `<span>${renderEmoji(cat)}</span> <span class="category-count">${count}</span>`;
+            btn.onclick = () => { currentCategory = cat; searchQuery = ''; searchEl.value = ''; closeSidebarOnMobile(); updateUI(); };
+            catListEl.appendChild(btn);
+        });
+    }
+
+    function renderBookmarks() {
+        bookmarksGridEl.innerHTML = '';
+        catTitleEl.innerHTML = renderEmoji(currentCategory);
+
+        let filtered = bookmarks;
+        if (currentCategory === '📌 Favorites') filtered = bookmarks.filter(b => favorites.includes(b.url));
+        else if (currentCategory !== 'All') filtered = bookmarks.filter(b => b.cat === currentCategory);
+
+        if (searchQuery) {
+            const lowerQ = searchQuery.toLowerCase();
+            filtered = filtered.filter(b => b.title.toLowerCase().includes(lowerQ) || b.url.toLowerCase().includes(lowerQ));
+        }
+
+        if (filtered.length === 0) { bookmarksGridEl.innerHTML = `<p style="color: var(--text-muted);">No bookmarks found.</p>`; return; }
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
+
+        filtered.forEach(b => {
+            const isFav = favorites.includes(b.url);
+            let domain = b.url; try { domain = new URL(b.url).hostname; } catch(e){}
+            const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+
+            const card = document.createElement('a'); card.href = b.url; card.target = "_blank"; card.className = 'card glass';
+            card.innerHTML = `
+                    <div class="card-actions" onclick="event.preventDefault();">
+                        <button class="action-btn fav ${isFav ? 'active' : ''}" onclick="toggleFav(event, '${b.url}')"><svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg></button>
+                        <button class="action-btn delete" onclick="deleteBookmark(event, '${b.url}')"><svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
+                    </div>
+                    <div class="card-header">
+                        <img src="${faviconUrl}" alt="" class="favicon" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <div class="favicon" style="display:none; background: var(--accent-glow); color: var(--text-main);">${domain.charAt(0).toUpperCase()}</div>
+                        <div class="card-title">${b.title}</div>
+                    </div>
+                    <div class="card-url">${domain}</div>
+                `;
+            bookmarksGridEl.appendChild(card);
+        });
+    }
+
+    function updateStats() {
+        document.getElementById('stat-total').textContent = bookmarks.length;
+        document.getElementById('stat-favs').textContent = favorites.length;
+        document.getElementById('stat-cats').textContent = getDynamicCategories().length - 2;
+    }
+
+    function updateDatalist() {
+        catDatalistEl.innerHTML = '';
+        getDynamicCategories().filter(c => c !== 'All' && c !== '📌 Favorites').forEach(c => {
+            const option = document.createElement('option'); option.value = c; catDatalistEl.appendChild(option);
+        });
+    }
+
+    searchEl.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        if (currentCategory !== 'All' && currentCategory !== '📌 Favorites' && searchQuery !== '') currentCategory = 'All';
+        updateUI();
+    });
+
+    document.getElementById('open-modal-btn').addEventListener('click', () => { document.getElementById('add-modal').classList.add('active'); });
+    document.getElementById('close-modal-btn').addEventListener('click', () => { document.getElementById('add-modal').classList.remove('active'); document.getElementById('add-form').reset(); });
+    document.getElementById('add-modal').addEventListener('click', (e) => { if (e.target === document.getElementById('add-modal')) document.getElementById('close-modal-btn').click(); });
+
+    document.getElementById('toggle-view').addEventListener('click', () => {
+        isGridView = !isGridView; bookmarksGridEl.className = isGridView ? 'bookmark-container' : 'bookmark-container list-view';
+    });
+
+    document.getElementById('toggle-theme').addEventListener('click', () => {
+        document.body.classList.toggle('light-mode');
+        localStorage.setItem('fuad_theme_final', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+    });
+
+    if(localStorage.getItem('fuad_theme_final') === 'light') document.body.classList.add('light-mode');
+
+    // Mobile Sidebar Logic
+    const sidebar = document.getElementById('sidebar');
+    document.getElementById('toggle-sidebar').addEventListener('click', () => { sidebar.classList.toggle('open'); });
+    window.closeSidebarOnMobile = function() { if(window.innerWidth <= 768) sidebar.classList.remove('open'); };
+
+    updateUI();
+</script>
+</body>
+</html>
