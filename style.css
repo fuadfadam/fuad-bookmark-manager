@@ -64,9 +64,14 @@ body {
 .nav-items::-webkit-scrollbar { width: 4px; }
 .nav-items::-webkit-scrollbar-thumb { background: var(--bg-card-hover); border-radius: 4px; }
 
-.category-btn { width: 100%; text-align: left; padding: 12px 14px; background: transparent; border: none; color: var(--text-muted); font-size: 14px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.category-btn:hover, .category-btn.active { background: var(--bg-card); color: var(--text-main); }
+/* Category Buttons & Drag Drop Styles */
+.category-btn { width: 100%; text-align: left; padding: 12px 14px; background: transparent; border: none; color: var(--text-muted); font-size: 14px; font-weight: 500; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; border-left: 4px solid transparent; }
+.category-btn:hover { background: var(--bg-card); color: var(--text-main); }
+.category-btn.active { background: var(--bg-card); color: var(--text-main); border-left: 4px solid var(--accent); padding-left: 10px; font-weight: 600; box-shadow: inset 20px 0 20px -20px var(--accent-glow); }
 .category-count { background: var(--bg-base); padding: 2px 8px; border-radius: 12px; font-size: 11px; border: 1px solid var(--border); }
+
+.category-btn.dragging { opacity: 0.4; transform: scale(0.98); }
+.category-btn.drag-over { border-bottom: 2px solid var(--accent); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
 
 #main { flex: 1; display: flex; flex-direction: column; position: relative; overflow: hidden; }
 #header { padding: 20px 32px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); z-index: 5; gap: 15px; }

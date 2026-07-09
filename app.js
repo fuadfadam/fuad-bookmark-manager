@@ -9,9 +9,13 @@ const initialBookmarks = [];
 let bookmarks = JSON.parse(localStorage.getItem('fuad_db')) || initialBookmarks;
 let favorites = JSON.parse(localStorage.getItem('fuad_favs')) || [];
 let customCategories = JSON.parse(localStorage.getItem('fuad_custom_cats')) || [];
+let categoryOrder = JSON.parse(localStorage.getItem('fuad_cat_order')) || [];
 let currentCategory = 'All';
 let searchQuery = '';
 let isGridView = true;
+
+// Drag & Drop State
+let draggedCat = null;
 
 // Variable to track the specific bookmark being edited
 let editingBookmarkUrl = null;
@@ -30,9 +34,11 @@ const els = {
 
     addModal: document.getElementById('add-modal'),
     addForm: document.getElementById('add-form'),
+    addCatInput: document.getElementById('bm-cat'),
 
     editBmModal: document.getElementById('edit-bm-modal'),
     editBmForm: document.getElementById('edit-bm-form'),
+    editBmCatInput: document.getElementById('edit-bm-cat'),
 
     editModal: document.getElementById('edit-cat-modal'),
     editForm: document.getElementById('edit-cat-form'),
@@ -50,6 +56,7 @@ function saveState() {
     localStorage.setItem('fuad_db', JSON.stringify(bookmarks));
     localStorage.setItem('fuad_favs', JSON.stringify(favorites));
     localStorage.setItem('fuad_custom_cats', JSON.stringify(customCategories));
+    localStorage.setItem('fuad_cat_order', JSON.stringify(categoryOrder));
     renderApp();
 }
 
@@ -57,10 +64,28 @@ function renderEmoji(text) {
     return text.replace(/🇮🇷/g, '<img src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f1ee-1f1f7.png" class="emoji-icon" alt="IR">');
 }
 
+// Ensure 'All' and 'Favorites' are ALWAYS at the top, rest is ordered manually or alphabetically
 function getCategories() {
     const dynamicCats = bookmarks.map(b => b.cat);
     const allCats = new Set([...dynamicCats, ...customCategories]);
-    return ['All', '📌 Favorites', ...Array.from(allCats)].sort();
+
+    // Explicitly remove system categories from the Set so they don't get sorted
+    allCats.delete('All');
+    allCats.delete('📌 Favorites');
+
+    let sortedCats = Array.from(allCats);
+
+    // Sort based on user's drag & drop order
+    sortedCats.sort((a, b) => {
+        let idxA = categoryOrder.indexOf(a);
+        let idxB = categoryOrder.indexOf(b);
+        if(idxA === -1) idxA = 99999;
+        if(idxB === -1) idxB = 99999;
+        if(idxA === 99999 && idxB === 99999) return a.localeCompare(b);
+        return idxA - idxB;
+    });
+
+    return ['All', '📌 Favorites', ...sortedCats];
 }
 
 // --- CRUD LOGIC ---
@@ -85,8 +110,53 @@ function openEditBookmarkModal(b) {
     editingBookmarkUrl = b.url;
     document.getElementById('edit-bm-title').value = b.title;
     document.getElementById('edit-bm-url').value = b.url;
-    document.getElementById('edit-bm-cat').value = b.cat;
+    els.editBmCatInput.value = b.cat;
     els.editBmModal.classList.add('active');
+}
+
+// --- DRAG & DROP LOGIC ---
+function handleDragStart(e) {
+    draggedCat = this.getAttribute('data-cat');
+    e.dataTransfer.effectAllowed = 'move';
+    this.classList.add('dragging');
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    return false;
+}
+
+function handleDragEnter(e) {
+    e.preventDefault();
+    this.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+    this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+    e.stopPropagation();
+    this.classList.remove('drag-over');
+    const targetCat = this.getAttribute('data-cat');
+
+    if (draggedCat !== targetCat) {
+        let cats = getCategories().filter(c => c !== 'All' && c !== '📌 Favorites');
+        const draggedIdx = cats.indexOf(draggedCat);
+        const targetIdx = cats.indexOf(targetCat);
+
+        cats.splice(draggedIdx, 1);
+        cats.splice(targetIdx, 0, draggedCat);
+
+        categoryOrder = cats;
+        saveState();
+    }
+    return false;
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
 }
 
 // --- RENDER FUNCTIONS ---
@@ -112,7 +182,20 @@ function renderSidebar() {
 
         const btn = document.createElement('button');
         btn.className = `category-btn ${cat === currentCategory ? 'active' : ''}`;
+        btn.setAttribute('data-cat', cat);
         btn.innerHTML = `<span>${renderEmoji(cat)}</span> <span class="category-count">${count}</span>`;
+
+        // Add Drag and Drop to non-system folders
+        if (cat !== 'All' && cat !== '📌 Favorites') {
+            btn.draggable = true;
+            btn.addEventListener('dragstart', handleDragStart);
+            btn.addEventListener('dragover', handleDragOver);
+            btn.addEventListener('dragenter', handleDragEnter);
+            btn.addEventListener('dragleave', handleDragLeave);
+            btn.addEventListener('drop', handleDrop);
+            btn.addEventListener('dragend', handleDragEnd);
+        }
+
         btn.addEventListener('click', () => {
             currentCategory = cat;
             searchQuery = '';
@@ -235,6 +318,26 @@ function updateDatalist() {
     });
 }
 
+// --- SMART DATALIST UX (Fixes Chrome Datalist Issue) ---
+let oldAddCatVal = '';
+els.addCatInput.addEventListener('focus', function() {
+    oldAddCatVal = this.value;
+    this.value = '';
+});
+els.addCatInput.addEventListener('blur', function() {
+    if(this.value.trim() === '') this.value = oldAddCatVal;
+});
+
+let oldEditCatVal = '';
+els.editBmCatInput.addEventListener('focus', function() {
+    oldEditCatVal = this.value;
+    this.value = '';
+});
+els.editBmCatInput.addEventListener('blur', function() {
+    if(this.value.trim() === '') this.value = oldEditCatVal;
+});
+
+
 // --- FORM EVENT LISTENERS ---
 
 // Add Bookmark
@@ -242,7 +345,7 @@ els.addForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const title = document.getElementById('bm-title').value.trim();
     let url = document.getElementById('bm-url').value.trim();
-    const cat = document.getElementById('bm-cat').value.trim();
+    const cat = els.addCatInput.value.trim();
 
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
@@ -252,6 +355,7 @@ els.addForm.addEventListener('submit', (e) => {
     }
 
     if (!customCategories.includes(cat)) customCategories.push(cat);
+    if (!categoryOrder.includes(cat)) categoryOrder.push(cat);
 
     bookmarks.push({ title, url, cat });
     saveState();
@@ -264,7 +368,7 @@ els.editBmForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newTitle = document.getElementById('edit-bm-title').value.trim();
     let newUrl = document.getElementById('edit-bm-url').value.trim();
-    const newCat = document.getElementById('edit-bm-cat').value.trim();
+    const newCat = els.editBmCatInput.value.trim();
 
     if (!/^https?:\/\//i.test(newUrl)) newUrl = 'https://' + newUrl;
 
@@ -274,6 +378,7 @@ els.editBmForm.addEventListener('submit', (e) => {
     }
 
     if (!customCategories.includes(newCat)) customCategories.push(newCat);
+    if (!categoryOrder.includes(newCat)) categoryOrder.push(newCat);
 
     // Update in bookmarks array
     const index = bookmarks.findIndex(b => b.url === editingBookmarkUrl);
@@ -309,6 +414,12 @@ els.editForm.addEventListener('submit', (e) => {
             customCategories.push(newName);
         }
 
+        if (categoryOrder.includes(currentCategory)) {
+            categoryOrder[categoryOrder.indexOf(currentCategory)] = newName;
+        } else {
+            categoryOrder.push(newName);
+        }
+
         currentCategory = newName;
         saveState();
     }
@@ -321,6 +432,7 @@ els.addCatForm.addEventListener('submit', (e) => {
     const newFolderName = document.getElementById('new-folder-name').value.trim();
     if (newFolderName && !getCategories().includes(newFolderName)) {
         customCategories.push(newFolderName);
+        categoryOrder.push(newFolderName);
         saveState();
     }
     els.addCatModal.classList.remove('active');
@@ -333,6 +445,7 @@ els.deleteCatBtn.addEventListener('click', () => {
     if (confirmDelete) {
         bookmarks = bookmarks.filter(b => b.cat !== currentCategory);
         customCategories = customCategories.filter(c => c !== currentCategory);
+        categoryOrder = categoryOrder.filter(c => c !== currentCategory);
         currentCategory = 'All';
         saveState();
     }
@@ -383,7 +496,11 @@ document.getElementById('import-file').addEventListener('change', (event) => {
                 const title = node.textContent.trim();
                 if (!bookmarks.some(b => b.url === url)) {
                     bookmarks.push({ title, url, cat: folderName || 'Imported' });
-                    if(folderName && !customCategories.includes(folderName)) customCategories.push(folderName);
+
+                    if(folderName && !customCategories.includes(folderName)) {
+                        customCategories.push(folderName);
+                        categoryOrder.push(folderName);
+                    }
                     newCount++;
                 }
             } else if (node.tagName === 'DT') {
