@@ -195,7 +195,6 @@ function renderGrid() {
         filtered = bookmarks.filter(b => b.cat === currentCategory);
     }
 
-    // Search filter includes Description now
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
         filtered = filtered.filter(b =>
@@ -234,43 +233,68 @@ function renderGrid() {
                     <svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
                 </button>
             </div>
+            
             <div class="card-header">
                 <img src="${faviconUrl}" alt="icon" class="favicon site-icon">
                 <div class="favicon fallback-icon" style="display:none;">${domain.charAt(0).toUpperCase()}</div>
                 <div class="card-text">
                     <div class="card-title">${b.title}</div>
-                    ${b.desc ? `<div class="card-desc">${b.desc}</div>` : ''}
+                    <div class="card-url">${domain}</div>
                 </div>
             </div>
-            <div class="card-url">${domain}</div>
+
+            ${b.desc ? `
+            <div class="card-desc-wrapper">
+                <div class="card-desc">${b.desc}</div>
+                <button class="expand-btn" style="display: none;" title="Show full description">
+                    <svg viewBox="0 0 24 24"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+                </button>
+            </div>
+            ` : ''}
         `;
 
+        // Action Buttons Prevention
         const actionsDiv = card.querySelector('.card-actions');
         actionsDiv.addEventListener('click', (e) => e.preventDefault());
 
         card.querySelector('.edit-bm-btn').addEventListener('click', (e) => {
-            e.preventDefault();
-            openEditBookmarkModal(b);
+            e.preventDefault(); openEditBookmarkModal(b);
         });
 
         card.querySelector('.fav').addEventListener('click', (e) => {
-            e.preventDefault();
-            toggleFavorite(b.url);
+            e.preventDefault(); toggleFavorite(b.url);
         });
 
         card.querySelector('.delete').addEventListener('click', (e) => {
-            e.preventDefault();
-            deleteBookmark(b.url);
+            e.preventDefault(); deleteBookmark(b.url);
         });
 
         const imgEl = card.querySelector('.site-icon');
         const fallbackEl = card.querySelector('.fallback-icon');
         imgEl.addEventListener('error', () => {
-            imgEl.style.display = 'none';
-            fallbackEl.style.display = 'flex';
+            imgEl.style.display = 'none'; fallbackEl.style.display = 'flex';
         });
 
         els.grid.appendChild(card);
+
+        // Smart Accordion Expansion Logic (only shows arrow if text is too long)
+        if (b.desc) {
+            requestAnimationFrame(() => {
+                const descEl = card.querySelector('.card-desc');
+                const expandBtn = card.querySelector('.expand-btn');
+                if (descEl && expandBtn) {
+                    // Check if content height is larger than the clamped 2-line height
+                    if (descEl.scrollHeight > descEl.clientHeight + 2) {
+                        expandBtn.style.display = 'flex';
+                        expandBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            descEl.classList.toggle('expanded');
+                            expandBtn.classList.toggle('expanded');
+                        });
+                    }
+                }
+            });
+        }
     });
 }
 
@@ -301,7 +325,6 @@ els.editBmCatInput.addEventListener('blur', function() { if(this.value.trim() ==
 
 // --- FORM EVENT LISTENERS ---
 
-// Add Bookmark
 els.addForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const title = document.getElementById('bm-title').value.trim();
@@ -309,14 +332,10 @@ els.addForm.addEventListener('submit', (e) => {
     let cat = els.addCatInput.value.trim();
     const desc = document.getElementById('bm-desc').value.trim();
 
-    // Default to 'All' if category is empty
     if (!cat) cat = 'All';
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
-    if (bookmarks.some(b => b.url === url)) {
-        alert("This URL is already in your library.");
-        return;
-    }
+    if (bookmarks.some(b => b.url === url)) { alert("This URL is already in your library."); return; }
 
     if (cat !== 'All' && cat !== '📌 Favorites') {
         if (!customCategories.includes(cat)) customCategories.push(cat);
@@ -329,7 +348,6 @@ els.addForm.addEventListener('submit', (e) => {
     els.addForm.reset();
 });
 
-// Edit Bookmark
 els.editBmForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newTitle = document.getElementById('edit-bm-title').value.trim();
@@ -341,8 +359,7 @@ els.editBmForm.addEventListener('submit', (e) => {
     if (!/^https?:\/\//i.test(newUrl)) newUrl = 'https://' + newUrl;
 
     if (newUrl !== editingBookmarkUrl && bookmarks.some(b => b.url === newUrl)) {
-        alert("This URL is already in your library.");
-        return;
+        alert("This URL is already in your library."); return;
     }
 
     if (newCat !== 'All' && newCat !== '📌 Favorites') {
@@ -367,7 +384,6 @@ els.editBmForm.addEventListener('submit', (e) => {
     els.editBmModal.classList.remove('active');
 });
 
-// Edit Category Name
 els.editForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newName = document.getElementById('new-cat-name').value.trim();
@@ -386,7 +402,6 @@ els.editForm.addEventListener('submit', (e) => {
     els.editModal.classList.remove('active');
 });
 
-// Create Folder
 els.addCatForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newFolderName = document.getElementById('new-folder-name').value.trim();
@@ -399,7 +414,6 @@ els.addCatForm.addEventListener('submit', (e) => {
     els.addCatForm.reset();
 });
 
-// Delete Category
 els.deleteCatBtn.addEventListener('click', () => {
     if (confirm(`Are you sure you want to delete the folder "${currentCategory}"?\n\nWARNING: This will also delete ALL bookmarks inside it!`)) {
         bookmarks = bookmarks.filter(b => b.cat !== currentCategory);
@@ -452,7 +466,6 @@ document.getElementById('import-file').addEventListener('change', (event) => {
                 const title = node.textContent.trim();
                 let desc = '';
 
-                // Extract description from standard <DD> tags
                 const parentDt = node.parentElement;
                 if (parentDt && parentDt.nextElementSibling && parentDt.nextElementSibling.tagName === 'DD') {
                     desc = parentDt.nextElementSibling.textContent.trim();
@@ -527,7 +540,6 @@ document.getElementById('toggle-theme').addEventListener('click', () => {
 
 document.getElementById('toggle-sidebar').addEventListener('click', () => els.sidebar.classList.toggle('open'));
 
-// Close sidebar when clicking outside on mobile
 document.addEventListener('click', (e) => {
     const toggleBtn = document.getElementById('toggle-sidebar');
     if (window.innerWidth <= 768 && els.sidebar.classList.contains('open')) {
@@ -537,7 +549,6 @@ document.addEventListener('click', (e) => {
     }
 });
 
-// Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
