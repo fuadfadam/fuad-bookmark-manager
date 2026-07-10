@@ -1,6 +1,6 @@
 /**
  * FUAD BOOKMARK MANAGER
- * Core Application Logic (Refactored for Clean Code Standards)
+ * Core Application Logic
  */
 
 const initialBookmarks = [];
@@ -14,10 +14,7 @@ let currentCategory = 'All';
 let searchQuery = '';
 let isGridView = true;
 
-// Drag & Drop State
 let draggedCat = null;
-
-// Variable to track the specific bookmark being edited
 let editingBookmarkUrl = null;
 
 // DOM Elements
@@ -64,18 +61,14 @@ function renderEmoji(text) {
     return text.replace(/🇮🇷/g, '<img src="https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/72x72/1f1ee-1f1f7.png" class="emoji-icon" alt="IR">');
 }
 
-// Ensure 'All' and 'Favorites' are ALWAYS at the top, rest is ordered manually or alphabetically
 function getCategories() {
     const dynamicCats = bookmarks.map(b => b.cat);
     const allCats = new Set([...dynamicCats, ...customCategories]);
 
-    // Explicitly remove system categories from the Set so they don't get sorted
     allCats.delete('All');
     allCats.delete('📌 Favorites');
 
     let sortedCats = Array.from(allCats);
-
-    // Sort based on user's drag & drop order
     sortedCats.sort((a, b) => {
         let idxA = categoryOrder.indexOf(a);
         let idxB = categoryOrder.indexOf(b);
@@ -110,54 +103,31 @@ function openEditBookmarkModal(b) {
     editingBookmarkUrl = b.url;
     document.getElementById('edit-bm-title').value = b.title;
     document.getElementById('edit-bm-url').value = b.url;
-    els.editBmCatInput.value = b.cat;
+    els.editBmCatInput.value = b.cat === 'All' ? '' : b.cat;
+    document.getElementById('edit-bm-desc').value = b.desc || '';
     els.editBmModal.classList.add('active');
 }
 
 // --- DRAG & DROP LOGIC ---
-function handleDragStart(e) {
-    draggedCat = this.getAttribute('data-cat');
-    e.dataTransfer.effectAllowed = 'move';
-    this.classList.add('dragging');
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    return false;
-}
-
-function handleDragEnter(e) {
-    e.preventDefault();
-    this.classList.add('drag-over');
-}
-
-function handleDragLeave(e) {
-    this.classList.remove('drag-over');
-}
-
+function handleDragStart(e) { draggedCat = this.getAttribute('data-cat'); e.dataTransfer.effectAllowed = 'move'; this.classList.add('dragging'); }
+function handleDragOver(e) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return false; }
+function handleDragEnter(e) { e.preventDefault(); this.classList.add('drag-over'); }
+function handleDragLeave(e) { this.classList.remove('drag-over'); }
 function handleDrop(e) {
-    e.stopPropagation();
-    this.classList.remove('drag-over');
+    e.stopPropagation(); this.classList.remove('drag-over');
     const targetCat = this.getAttribute('data-cat');
-
     if (draggedCat !== targetCat) {
         let cats = getCategories().filter(c => c !== 'All' && c !== '📌 Favorites');
         const draggedIdx = cats.indexOf(draggedCat);
         const targetIdx = cats.indexOf(targetCat);
-
         cats.splice(draggedIdx, 1);
         cats.splice(targetIdx, 0, draggedCat);
-
         categoryOrder = cats;
         saveState();
     }
     return false;
 }
-
-function handleDragEnd(e) {
-    this.classList.remove('dragging');
-}
+function handleDragEnd(e) { this.classList.remove('dragging'); }
 
 // --- RENDER FUNCTIONS ---
 function renderApp() {
@@ -185,7 +155,6 @@ function renderSidebar() {
         btn.setAttribute('data-cat', cat);
         btn.innerHTML = `<span>${renderEmoji(cat)}</span> <span class="category-count">${count}</span>`;
 
-        // Add Drag and Drop to non-system folders
         if (cat !== 'All' && cat !== '📌 Favorites') {
             btn.draggable = true;
             btn.addEventListener('dragstart', handleDragStart);
@@ -226,9 +195,14 @@ function renderGrid() {
         filtered = bookmarks.filter(b => b.cat === currentCategory);
     }
 
+    // Search filter includes Description now
     if (searchQuery) {
         const q = searchQuery.toLowerCase();
-        filtered = filtered.filter(b => b.title.toLowerCase().includes(q) || b.url.toLowerCase().includes(q));
+        filtered = filtered.filter(b =>
+            b.title.toLowerCase().includes(q) ||
+            b.url.toLowerCase().includes(q) ||
+            (b.desc && b.desc.toLowerCase().includes(q))
+        );
     }
 
     if (filtered.length === 0) {
@@ -263,7 +237,10 @@ function renderGrid() {
             <div class="card-header">
                 <img src="${faviconUrl}" alt="icon" class="favicon site-icon">
                 <div class="favicon fallback-icon" style="display:none;">${domain.charAt(0).toUpperCase()}</div>
-                <div class="card-title">${b.title}</div>
+                <div class="card-text">
+                    <div class="card-title">${b.title}</div>
+                    ${b.desc ? `<div class="card-desc">${b.desc}</div>` : ''}
+                </div>
             </div>
             <div class="card-url">${domain}</div>
         `;
@@ -308,35 +285,19 @@ function updateDatalist() {
     els.editBmDatalist.innerHTML = '';
 
     getCategories().filter(c => c !== 'All' && c !== '📌 Favorites').forEach(c => {
-        const option1 = document.createElement('option');
-        option1.value = c;
-        els.datalist.appendChild(option1);
-
-        const option2 = document.createElement('option');
-        option2.value = c;
-        els.editBmDatalist.appendChild(option2);
+        const option1 = document.createElement('option'); option1.value = c; els.datalist.appendChild(option1);
+        const option2 = document.createElement('option'); option2.value = c; els.editBmDatalist.appendChild(option2);
     });
 }
 
-// --- SMART DATALIST UX (Fixes Chrome Datalist Issue) ---
+// --- SMART DATALIST UX ---
 let oldAddCatVal = '';
-els.addCatInput.addEventListener('focus', function() {
-    oldAddCatVal = this.value;
-    this.value = '';
-});
-els.addCatInput.addEventListener('blur', function() {
-    if(this.value.trim() === '') this.value = oldAddCatVal;
-});
+els.addCatInput.addEventListener('focus', function() { oldAddCatVal = this.value; this.value = ''; });
+els.addCatInput.addEventListener('blur', function() { if(this.value.trim() === '') this.value = oldAddCatVal; });
 
 let oldEditCatVal = '';
-els.editBmCatInput.addEventListener('focus', function() {
-    oldEditCatVal = this.value;
-    this.value = '';
-});
-els.editBmCatInput.addEventListener('blur', function() {
-    if(this.value.trim() === '') this.value = oldEditCatVal;
-});
-
+els.editBmCatInput.addEventListener('focus', function() { oldEditCatVal = this.value; this.value = ''; });
+els.editBmCatInput.addEventListener('blur', function() { if(this.value.trim() === '') this.value = oldEditCatVal; });
 
 // --- FORM EVENT LISTENERS ---
 
@@ -345,8 +306,11 @@ els.addForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const title = document.getElementById('bm-title').value.trim();
     let url = document.getElementById('bm-url').value.trim();
-    const cat = els.addCatInput.value.trim();
+    let cat = els.addCatInput.value.trim();
+    const desc = document.getElementById('bm-desc').value.trim();
 
+    // Default to 'All' if category is empty
+    if (!cat) cat = 'All';
     if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
 
     if (bookmarks.some(b => b.url === url)) {
@@ -354,10 +318,12 @@ els.addForm.addEventListener('submit', (e) => {
         return;
     }
 
-    if (!customCategories.includes(cat)) customCategories.push(cat);
-    if (!categoryOrder.includes(cat)) categoryOrder.push(cat);
+    if (cat !== 'All' && cat !== '📌 Favorites') {
+        if (!customCategories.includes(cat)) customCategories.push(cat);
+        if (!categoryOrder.includes(cat)) categoryOrder.push(cat);
+    }
 
-    bookmarks.push({ title, url, cat });
+    bookmarks.push({ title, url, cat, desc });
     saveState();
     els.addModal.classList.remove('active');
     els.addForm.reset();
@@ -368,8 +334,10 @@ els.editBmForm.addEventListener('submit', (e) => {
     e.preventDefault();
     const newTitle = document.getElementById('edit-bm-title').value.trim();
     let newUrl = document.getElementById('edit-bm-url').value.trim();
-    const newCat = els.editBmCatInput.value.trim();
+    let newCat = els.editBmCatInput.value.trim();
+    const newDesc = document.getElementById('edit-bm-desc').value.trim();
 
+    if (!newCat) newCat = 'All';
     if (!/^https?:\/\//i.test(newUrl)) newUrl = 'https://' + newUrl;
 
     if (newUrl !== editingBookmarkUrl && bookmarks.some(b => b.url === newUrl)) {
@@ -377,23 +345,22 @@ els.editBmForm.addEventListener('submit', (e) => {
         return;
     }
 
-    if (!customCategories.includes(newCat)) customCategories.push(newCat);
-    if (!categoryOrder.includes(newCat)) categoryOrder.push(newCat);
+    if (newCat !== 'All' && newCat !== '📌 Favorites') {
+        if (!customCategories.includes(newCat)) customCategories.push(newCat);
+        if (!categoryOrder.includes(newCat)) categoryOrder.push(newCat);
+    }
 
-    // Update in bookmarks array
     const index = bookmarks.findIndex(b => b.url === editingBookmarkUrl);
     if (index !== -1) {
         bookmarks[index].title = newTitle;
         bookmarks[index].url = newUrl;
         bookmarks[index].cat = newCat;
+        bookmarks[index].desc = newDesc;
     }
 
-    // Update in favorites array if URL changed
     if (newUrl !== editingBookmarkUrl) {
         const favIndex = favorites.indexOf(editingBookmarkUrl);
-        if (favIndex !== -1) {
-            favorites[favIndex] = newUrl;
-        }
+        if (favIndex !== -1) favorites[favIndex] = newUrl;
     }
 
     saveState();
@@ -407,18 +374,11 @@ els.editForm.addEventListener('submit', (e) => {
 
     if(newName && newName !== currentCategory) {
         bookmarks.forEach(b => { if (b.cat === currentCategory) b.cat = newName; });
+        if (customCategories.includes(currentCategory)) customCategories[customCategories.indexOf(currentCategory)] = newName;
+        else customCategories.push(newName);
 
-        if (customCategories.includes(currentCategory)) {
-            customCategories[customCategories.indexOf(currentCategory)] = newName;
-        } else {
-            customCategories.push(newName);
-        }
-
-        if (categoryOrder.includes(currentCategory)) {
-            categoryOrder[categoryOrder.indexOf(currentCategory)] = newName;
-        } else {
-            categoryOrder.push(newName);
-        }
+        if (categoryOrder.includes(currentCategory)) categoryOrder[categoryOrder.indexOf(currentCategory)] = newName;
+        else categoryOrder.push(newName);
 
         currentCategory = newName;
         saveState();
@@ -441,8 +401,7 @@ els.addCatForm.addEventListener('submit', (e) => {
 
 // Delete Category
 els.deleteCatBtn.addEventListener('click', () => {
-    const confirmDelete = confirm(`Are you sure you want to delete the folder "${currentCategory}"?\n\nWARNING: This will also delete ALL bookmarks inside it!`);
-    if (confirmDelete) {
+    if (confirm(`Are you sure you want to delete the folder "${currentCategory}"?\n\nWARNING: This will also delete ALL bookmarks inside it!`)) {
         bookmarks = bookmarks.filter(b => b.cat !== currentCategory);
         customCategories = customCategories.filter(c => c !== currentCategory);
         categoryOrder = categoryOrder.filter(c => c !== currentCategory);
@@ -464,6 +423,7 @@ document.getElementById('export-html-btn').addEventListener('click', () => {
         html += `    <DT><H3>${cat}</H3>\n    <DL><p>\n`;
         bookmarks.filter(b => b.cat === cat).forEach(b => {
             html += `        <DT><A HREF="${b.url}">${b.title}</A>\n`;
+            if (b.desc) html += `        <DD>${b.desc}\n`;
         });
         html += `    </DL><p>\n`;
     });
@@ -471,11 +431,7 @@ document.getElementById('export-html-btn').addEventListener('click', () => {
 
     const blob = new Blob([html], { type: "text/html" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'fuad_bookmarks.html';
-    a.click();
-    URL.revokeObjectURL(url);
+    const a = document.createElement('a'); a.href = url; a.download = 'fuad_bookmarks.html'; a.click(); URL.revokeObjectURL(url);
 });
 
 document.getElementById('import-html-btn').addEventListener('click', () => document.getElementById('import-file').click());
@@ -494,10 +450,17 @@ document.getElementById('import-file').addEventListener('change', (event) => {
             if (node.tagName === 'A') {
                 const url = node.href;
                 const title = node.textContent.trim();
-                if (!bookmarks.some(b => b.url === url)) {
-                    bookmarks.push({ title, url, cat: folderName || 'Imported' });
+                let desc = '';
 
-                    if(folderName && !customCategories.includes(folderName)) {
+                // Extract description from standard <DD> tags
+                const parentDt = node.parentElement;
+                if (parentDt && parentDt.nextElementSibling && parentDt.nextElementSibling.tagName === 'DD') {
+                    desc = parentDt.nextElementSibling.textContent.trim();
+                }
+
+                if (!bookmarks.some(b => b.url === url)) {
+                    bookmarks.push({ title, url, cat: folderName || 'All', desc });
+                    if(folderName && folderName !== 'All' && !customCategories.includes(folderName)) {
                         customCategories.push(folderName);
                         categoryOrder.push(folderName);
                     }
@@ -540,17 +503,6 @@ els.search.addEventListener('input', (e) => {
 document.getElementById('open-add-modal-btn').addEventListener('click', () => els.addModal.classList.add('active'));
 document.getElementById('open-add-cat-btn').addEventListener('click', () => els.addCatModal.classList.add('active'));
 
-// Close sidebar when clicking outside on mobile
-document.addEventListener('click', (e) => {
-    const toggleBtn = document.getElementById('toggle-sidebar');
-    if (window.innerWidth <= 768 && els.sidebar.classList.contains('open')) {
-        // If the click is NOT inside the sidebar AND NOT on the toggle button
-        if (!els.sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
-            els.sidebar.classList.remove('open');
-        }
-    }
-});
-
 els.editCatBtn.addEventListener('click', () => {
     document.getElementById('new-cat-name').value = currentCategory;
     els.editModal.classList.add('active');
@@ -575,12 +527,15 @@ document.getElementById('toggle-theme').addEventListener('click', () => {
 
 document.getElementById('toggle-sidebar').addEventListener('click', () => els.sidebar.classList.toggle('open'));
 
-// INIT
-if (localStorage.getItem('fuad_theme') === 'light') {
-    document.body.classList.add('light-mode');
-    document.body.classList.remove('dark-mode');
-}
-renderApp();
+// Close sidebar when clicking outside on mobile
+document.addEventListener('click', (e) => {
+    const toggleBtn = document.getElementById('toggle-sidebar');
+    if (window.innerWidth <= 768 && els.sidebar.classList.contains('open')) {
+        if (!els.sidebar.contains(e.target) && !toggleBtn.contains(e.target)) {
+            els.sidebar.classList.remove('open');
+        }
+    }
+});
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
@@ -590,3 +545,10 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.error('Service Worker registration failed:', err));
     });
 }
+
+// INIT
+if (localStorage.getItem('fuad_theme') === 'light') {
+    document.body.classList.add('light-mode');
+    document.body.classList.remove('dark-mode');
+}
+renderApp();

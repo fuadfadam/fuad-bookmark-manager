@@ -40,7 +40,7 @@
             </button>
             <div class="search-container">
                 <svg class="search-icon" viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                <input type="text" id="search" placeholder="Search across bookmarks..." autocomplete="off">
+                <input type="text" id="search" placeholder="Search title, URL, or description..." autocomplete="off">
             </div>
         </div>
 
@@ -102,8 +102,13 @@
             </div>
             <div class="form-group">
                 <label for="bm-cat">Category / Folder</label>
-                <input type="text" id="bm-cat" placeholder="Select or create new" list="cat-datalist" required>
+                <!-- Removed 'required' to allow empty inputs to default to 'All' -->
+                <input type="text" id="bm-cat" placeholder="Leave empty for 'All'" list="cat-datalist">
                 <datalist id="cat-datalist"></datalist>
+            </div>
+            <div class="form-group">
+                <label for="bm-desc">Description (Optional)</label>
+                <textarea id="bm-desc" rows="2" placeholder="Add a short description..."></textarea>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary close-modal-btn">Cancel</button>
@@ -128,8 +133,12 @@
             </div>
             <div class="form-group">
                 <label for="edit-bm-cat">Category / Folder</label>
-                <input type="text" id="edit-bm-cat" list="edit-bm-datalist" required>
+                <input type="text" id="edit-bm-cat" list="edit-bm-datalist">
                 <datalist id="edit-bm-datalist"></datalist>
+            </div>
+            <div class="form-group">
+                <label for="edit-bm-desc">Description</label>
+                <textarea id="edit-bm-desc" rows="2"></textarea>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-secondary close-modal-btn">Cancel</button>
