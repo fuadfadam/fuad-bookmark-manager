@@ -253,7 +253,6 @@ function renderGrid() {
             ` : ''}
         `;
 
-        // Action Buttons Prevention
         const actionsDiv = card.querySelector('.card-actions');
         actionsDiv.addEventListener('click', (e) => e.preventDefault());
 
@@ -277,13 +276,11 @@ function renderGrid() {
 
         els.grid.appendChild(card);
 
-        // Smart Accordion Expansion Logic (only shows arrow if text is too long)
         if (b.desc) {
             requestAnimationFrame(() => {
                 const descEl = card.querySelector('.card-desc');
                 const expandBtn = card.querySelector('.expand-btn');
                 if (descEl && expandBtn) {
-                    // Check if content height is larger than the clamped 2-line height
                     if (descEl.scrollHeight > descEl.clientHeight + 2) {
                         expandBtn.style.display = 'flex';
                         expandBtn.addEventListener('click', (e) => {
@@ -552,7 +549,6 @@ document.addEventListener('click', (e) => {
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('Service Worker registered!'))
             .catch(err => console.error('Service Worker registration failed:', err));
     });
 }
